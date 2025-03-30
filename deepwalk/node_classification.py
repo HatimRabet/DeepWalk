@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 import scipy.sparse as sp
-from torch_geometric.datasets import Planetoid
+from torch_geometric.datasets import Planetoid, Amazon
 from ogb.nodeproppred import PygNodePropPredDataset
 from deepwalk.visualization import visualize
 
@@ -30,6 +30,14 @@ def load_graph_dataset(dataset_name, data_dir="./data"):
     # Planetoid datasets (Cora, Citeseer, PubMed) from PyG
     if dataset_name in ["cora", "citeseer", "pubmed"]:
         dataset = Planetoid(root=data_dir, name=dataset_name)
+        edge_index = dataset[0].edge_index.numpy()
+        labels = dataset[0].y.numpy()
+
+        # Convert edge index to NetworkX graph
+        G = nx.Graph()
+        G.add_edges_from(edge_index.T)
+    elif dataset_name in ["amazon-computers"]:
+        dataset = Amazon(root=data_dir, name='computers')
         edge_index = dataset[0].edge_index.numpy()
         labels = dataset[0].y.numpy()
 
@@ -107,7 +115,7 @@ def evaluate_graph_embeddings(dataset_name,
         y.append(idx_to_class_label[node])
     
     y = np.array(y)
-    
+
     # Visualize the network if requested
     if not not_visualize:
         plt.figure(figsize=(10, 8))
@@ -119,13 +127,13 @@ def evaluate_graph_embeddings(dataset_name,
     # Extract DeepWalk parameters
     n = G.number_of_nodes()
     n_dim = deepwalk_params.get('n_dim', 128)
-    n_walks = deepwalk_params.get('n_walks', 10)
-    walk_length = deepwalk_params.get('walk_length', 20)
+    n_walks = deepwalk_params.get('n_walks', 100)
+    walk_length = deepwalk_params.get('walk_length', 10)
     
     # Create and train DeepWalk model
     from deepwalk.model import DeepWalk
     dw = DeepWalk(num_walks=n_walks, walk_length=walk_length, n_dim=n_dim)
-    dw.fit(G)
+    dw.fit(G, epochs=100)
     
     # Get DeepWalk embeddings
     embeddings = np.zeros((n, n_dim))
@@ -152,44 +160,45 @@ def evaluate_graph_embeddings(dataset_name,
     accuracy_dw = accuracy_score(y_test, y_pred)
     print(f"Accuracy of Logistic Regression with DeepWalk: {100 * accuracy_dw:.2f}%")
     
-    # Generate spectral embeddings
-    def spectral_clustering_embeddings(G, k):
-        A = nx.adjacency_matrix(G).astype(float)
+    # # Generate spectral embeddings
+    # def spectral_clustering_embeddings(G, k):
+    #     A = nx.adjacency_matrix(G).astype(float)
         
-        degrees = np.array(A.sum(axis=1)).flatten()
-        D = diags(degrees)
+    #     degrees = np.array(A.sum(axis=1)).flatten()
+    #     D = diags(degrees)
         
-        # Handle zero degrees to avoid division by zero
-        degrees_inv = np.array([1.0/d if d > 0 else 0 for d in degrees])
-        D_inv = diags(degrees_inv)
+    #     # Handle zero degrees to avoid division by zero
+    #     degrees_inv = np.array([1.0/d if d > 0 else 0 for d in degrees])
+    #     D_inv = diags(degrees_inv)
         
-        Lrw = eye(G.number_of_nodes()) - D_inv @ A
+    #     Lrw = eye(G.number_of_nodes()) - D_inv @ A
         
-        _, U = eigs(Lrw, k=k, which='SM')
-        return U.real
+    #     _, U = eigs(Lrw, k=k, which='SM')
+    #     return U.real
     
-    # Extract spectral parameters
-    k = spectral_params.get('k', 2)
+    # # Extract spectral parameters
+    # k = spectral_params.get('k', 2)
     
-    # Generate spectral embeddings
-    X = spectral_clustering_embeddings(G, k)
+    # # Generate spectral embeddings
+    # X = spectral_clustering_embeddings(G, k)
     
-    # Use the same train/test split
-    X_train_sp = X[idx_train,:]
-    X_test_sp = X[idx_test,:]
+    # # Use the same train/test split
+    # X_train_sp = X[idx_train,:]
+    # X_test_sp = X[idx_test,:]
 
-    y_train_sp = y[idx_train]
-    y_test_sp = y[idx_test]
+    # y_train_sp = y[idx_train]
+    # y_test_sp = y[idx_test]
     
-    # Train logistic regression on spectral embeddings
-    logisticRegSp = LogisticRegression(random_state=random_state)
-    logisticRegSp.fit(X_train_sp, y_train_sp)
-    y_pred_sp = logisticRegSp.predict(X_test_sp)
+    # # Train logistic regression on spectral embeddings
+    # logisticRegSp = LogisticRegression(random_state=random_state)
+    # logisticRegSp.fit(X_train_sp, y_train_sp)
+    # y_pred_sp = logisticRegSp.predict(X_test_sp)
     
-    accuracy_sp = accuracy_score(y_test, y_pred_sp)
-    print(f"Accuracy of Logistic Regression with Spectral Clustering: {100 * accuracy_sp:.2f}%")
+    # accuracy_sp = accuracy_score(y_test, y_pred_sp)
+    # print(f"Accuracy of Logistic Regression with Spectral Clustering: {100 * accuracy_sp:.2f}%")
 
-    visualize(dw.model, G, labels, 100, n_dim)
+    # visualize(dw.model, G, labels, 100, n_dim)
+    visualize(X_train, y_train, n, n_dim, "amazon-computers_deepwalk")
     
     # Return results
     results = {
@@ -197,10 +206,6 @@ def evaluate_graph_embeddings(dataset_name,
             'embeddings': embeddings,
             'accuracy': accuracy_dw,
             'model': dw
-        },
-        'spectral': {
-            'embeddings': X,
-            'accuracy': accuracy_sp
         },
         'data': {
             'graph': G,
@@ -214,6 +219,6 @@ def evaluate_graph_embeddings(dataset_name,
 
 
 if __name__ == "__main__":
-    dataset_name = "karate"  # Change to 'citeseer', 'pubmed', 'karate', 'ogbn-arxiv'
+    dataset_name = "amazon-computers"  # Change to 'citeseer', 'pubmed', 'karate', 'ogbn-arxiv'
     G, labels = load_graph_dataset(dataset_name)
     results = evaluate_graph_embeddings(dataset_name=dataset_name)
