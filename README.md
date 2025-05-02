@@ -106,11 +106,11 @@ _All graphs are treated as undirected and pre‑processed with self‑loops remo
 | **DeepWalk** | 85.1 % | 59.6 % | **88.6 %** |
 
 ### 2 · Embedding Visualisation (t‑SNE)
-| Cora | Citeseer | Amazon‑Computers |
-|------|----------|------------------|
-| ![GNN Cora](results/cora_gnn.png) | ![GNN Citeseer](results/citeseer_gnn.png) | ![GNN Amazon](results/amazon_gnn.png) |
-| ![GAT Cora](results/cora_gat.png) | ![GAT Citeseer](results/gat_citeseer.png) | ![GAT Amazon](results/amazon_gat.png) |
-| ![DeepWalk Cora](results/cora_deepwalk.png) | ![DeepWalk Citeseer](results/citeseer_deepwalk.png) | ![DeepWalk Amazon](results/amazon_gat.png) |
+| Model | Cora | Citeseer | Amazon‑Computers |
+|-------|------|----------|------------------|
+| **GNN** | ![GNN Cora](results/cora_gnn.png) | ![GNN Citeseer](results/citeseer_gnn.png) | ![GNN Amazon](results/amazon_gnn.png) |
+| **GAT** | ![GAT Cora](results/cora_gat.png) | ![GAT Citeseer](results/gat_citeseer.png) | ![GAT Amazon](results/amazon_gat.png) |
+| **DeepWalk** | ![DeepWalk Cora](results/cora_deepwalk.png) | ![DeepWalk Citeseer](results/citeseer_deepwalk.png) | ![DeepWalk Amazon](results/amazon_gat.png) |
 
 _For all theoretical background and extended discussion of these numbers and plots, please refer to the accompanying PDF report._
 
